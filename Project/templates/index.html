@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnchorAI - Giữ Chân Khách Hàng</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/x-icon" href="https://static.wixstatic.com/media/d31d8a_af98f06117b74ffaaefcc0481b1add97~mv2.png">
+</head>
+<body>
+    <div class="help-guide-container" onclick="toggleHelpGuide()">
+        <span class="help-guide-text">Xem hướng dẫn sử dụng</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" class="anchor-icon">
+            <path d="M12 22V8"/>
+            <path d="M5 12H2a10 10 0 0 0 20 0h-3"/>
+            <circle cx="12" cy="5" r="3"/>
+        </svg>
+    </div>
+
+    <div id="helpGuideModal" class="help-guide-modal">
+        <div class="help-guide-content">
+            <span class="help-guide-close" onclick="toggleHelpGuide()">&times;</span>
+            <h2 >Hướng Dẫn Sử Dụng <span style="color:#007BFF">AnchorAI</span></h2>
+            <p>AnchorAI giúp bạn tạo chiến lược giữ chân khách hàng một cách thông minh và nhanh chóng.</p>
+            
+            <ol class="help-guide-steps">
+                <li>
+                    <strong>Chọn AI:</strong> Bạn có thể lựa chọn giữa OpenAI (ChatGPT) hoặc Google Gemini để sinh chiến lược. Mỗi AI sẽ có góc nhìn và cách tiếp cận khác nhau.
+                </li>
+                <li>
+                    <strong>Xác Định Lý Do Khách Hàng Rời Bỏ:</strong> Đánh dấu vào các lý do chính khiến khách hàng có thể rời bỏ dịch vụ hoặc sản phẩm của bạn. Việc này giúp AI hiểu rõ hơn về bối cảnh và đưa ra giải pháp phù hợp.
+                </li>
+                <li>
+                    <strong>Tạo Chiến Lược:</strong> Nhấn nút "Tạo chiến lược" để hệ thống sinh ra một chiến lược chi tiết dành riêng cho tình huống của bạn. Chiến lược sẽ được hiển thị ngay bên dưới.
+                </li>
+                <li>
+                    <strong>Phân Tích Chiến Lược:</strong> Đọc kỹ chiến lược được đề xuất. Các giải pháp được AI tạo ra có thể bao gồm các kế hoạch cụ thể, gợi ý cải thiện trải nghiệm khách hàng, và các phương pháp kết nối hiệu quả.
+                </li>
+                <li>
+                    <strong>Tùy Chỉnh và Áp Dụng:</strong> Bạn có thể điều chỉnh chiến lược cho phù hợp với tình hình thực tế của doanh nghiệp. Không ngần ngại thử nghiệm và tinh chỉnh các giải pháp.
+                </li>
+            </ol>
+            
+            <p><em>Lưu ý: AnchorAI vẫn đang trong quá trình thử nghiệm và các chiến lược do AI đề xuất là gợi ý. Luôn kết hợp với kinh nghiệm và hiểu biết sâu sắc về doanh nghiệp của bạn.</em></p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="anchor-title">
+            AnchorAI 
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" class="anchor-icon">
+                <path d="M12 22V8"/>
+                <path d="M5 12H2a10 10 0 0 0 20 0h-3"/>
+                <circle cx="12" cy="5" r="3"/>
+            </svg>
+        </h1>
+        <div style="text-align: center; color: #6c757d; margin-bottom: 20px;">Be your customer relationship's anchor</div>
+        
+        <form method="POST">
+            <div class="llm-selector">
+                <label for="llm_choice">Chọn AI để sinh chiến lược:</label>
+                <select name="llm_choice" class="llm-dropdown" id="llmChoice" onchange="showAIChangeNotification()">
+                    <option value="openai" {% if llm_choice == 'openai' or not llm_choice %}selected{% endif %}>
+                        OpenAI (ChatGPT)
+                    </option>
+                    <option value="gemini" {% if llm_choice == 'gemini' %}selected{% endif %}>
+                        Google Gemini
+                    </option>
+                </select>
+            </div>
+
+            <label for="reasons">Chọn lý do khách hàng rời bỏ:</label>
+            <div class="checkbox-group">
+                {% for reason in reasons %}
+                    <label>
+                        <input type="checkbox" name="reasons" value="{{ reason }}">
+                        {{ reason }}
+                    </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn">Tạo chiến lược giữ chân khách hàng</button>
+        </form>
+        
+        {% if strategy %}
+        <div class="strategy-box">
+            <h2>Chiến lược đề xuất:</h2>
+            <pre>{{ strategy }}</pre>
+        </div>
+        {% endif %}
+        
+        <!-- Thông báo khi chọn AI -->
+        <div id="aiChangeNotification">
+            <p>Đã đổi sang <span id="aiName"></span></p>
+        </div>
+    </div>
+
+    <script>
+        function toggleHelpGuide() {
+            const modal = document.getElementById('helpGuideModal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('helpGuideModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        function showAIChangeNotification() {
+            const llmChoice = document.getElementById('llmChoice').value;
+            const aiName = document.getElementById('aiName');
+            const notification = document.getElementById('aiChangeNotification');
+
+            if (llmChoice === 'openai') {
+                aiName.textContent = 'OpenAI (ChatGPT)';
+            } else if (llmChoice === 'gemini') {
+                aiName.textContent = 'Google Gemini';
+            }
+
+            notification.style.display = 'block';
+
+            // Ẩn thông báo sau 3 giây
+            setTimeout(function() {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
