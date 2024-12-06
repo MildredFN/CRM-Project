@@ -29,7 +29,4 @@ def query_pinecone(index_name, query_embedding, top_k= 4):
             print("Metadata:")
             for key, value in match['metadata'].items():
                 print(f"  {key}: {value}")
-        
-        print("Vector (một phần):", match['values'][:5], "...")
-    
     return results
