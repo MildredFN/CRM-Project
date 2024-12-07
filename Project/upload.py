@@ -1,19 +1,17 @@
 import io
 import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 from pinecone import Pinecone, ServerlessSpec
 from openai import OpenAI
 from typing import List
-
-# API Keys
-PINECONE_API_KEY = "pcsk_hVSzM_3jRxgv7ABQ5LB1D9LotmRA9PYqqU9AjDBtZjz7cQ2fpKbcEaqQ3AvmWsFcxSZWk"
-OPENAI_API_KEY = "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"
+from config import Config
 
 # Khởi tạo Pinecone và OpenAI
-pc = Pinecone(api_key=PINECONE_API_KEY)
+pc = Pinecone(api_key=Config.PINECONE_API_KEY)
 
 # Kết nối đến index đã tồn tại
-index_name = "sample-movies"
+index_name = Config.PINECONE_INDEX_NAME
 # Kiểm tra xem index có tồn tại không và xóa nếu có
 if index_name in pc.list_indexes().names():
     pc.delete_index(index_name)
@@ -25,7 +23,7 @@ if index_name not in pc.list_indexes().names():
         metric='cosine',
         spec=ServerlessSpec(
             cloud='aws',
-            region='us-east-1'
+            region='us-east-1'  # Có thể lấy từ Config nếu cần
         )
     )
 
@@ -33,18 +31,34 @@ if index_name not in pc.list_indexes().names():
 index = pc.Index(index_name)
 
 # Khởi tạo OpenAI client
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
 
 def read_file(file_path: str) -> str:
     # Đọc nội dung từ tệp văn bản
     with open(file_path, 'r', encoding='utf-8') as file:
         return file.read()
 
-def split_into_chunks(text: str) -> List[str]:
-    # Chia văn bản thành các chunk nhỏ hơn dựa trên dấu phân tách '\n\n'.
-    chunks = text.split('\n\n')
-    chunks = [chunk.strip() for chunk in chunks if chunk.strip()]
-    return chunks
+def split_into_chunks(text: str, separator: str = '\n\n', max_chunk_size: int = 1000) -> List[str]:
+    # Chia văn bản thành các chunk dựa trên separator, đảm bảo không quá dài
+    initial_chunks = text.split(separator)
+    
+    # Kiểm tra và chia nhỏ các chunk quá dài
+    refined_chunks = []
+    for chunk in initial_chunks:
+        # Nếu chunk quá dài, chia nhỏ tiếp
+        if len(chunk.split()) > max_chunk_size:
+            words = chunk.split()
+            while words:
+                sub_chunk = words[:max_chunk_size]
+                refined_chunks.append(' '.join(sub_chunk))
+                words = words[max_chunk_size:]
+        else:
+            refined_chunks.append(chunk)
+    
+    # Loại bỏ các chunk trống
+    refined_chunks = [chunk.strip() for chunk in refined_chunks if chunk.strip()]
+    
+    return refined_chunks
 
 def create_embedding(text: str) -> List[float]:
     # Tạo embedding cho văn bản sử dụng OpenAI
@@ -73,16 +87,21 @@ def upload_to_pinecone(chunks: List[str], batch_size: int = 100):
     if vectors:
         index.upsert(vectors)
 
+def main():
+    file_path = 'retention-customer.txt'
 
-file_path = 'retention-customer.txt'
+    # Đọc file
+    raw_text = read_file(file_path)
 
-# Đọc file
-raw_text = read_file(file_path)
+    # Chia thành các chunk
+    chunks = split_into_chunks(raw_text)
 
-# Chia thành các chunk
-chunks = split_into_chunks(raw_text)
+    # Upload lên Pinecone
+    upload_to_pinecone(chunks)
 
-# Upload lên Pinecone
-upload_to_pinecone(chunks)
+    print(f"Đã xử lý và upload {len(chunks)} chunks lên Pinecone.")
 
-print(f"Đã xử lý và upload {len(chunks)} chunks lên Pinecone.")
+if __name__ == "__main__":
+    # Kiểm tra và validate keys trước khi chạy
+    Config.validate_keys()
+    main()

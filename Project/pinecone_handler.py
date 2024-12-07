@@ -1,14 +1,17 @@
 from pinecone import Pinecone, ServerlessSpec
 from openai import OpenAI
+from config import Config
 
-openai_client = OpenAI(api_key="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")
+# Khởi tạo OpenAI client với API key từ Config
+openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
+
 # Cấu hình Pinecone
 def configure_pinecone(api_key, environment):
     pc = Pinecone(api_key=api_key)
     return pc
 
 # Hàm tạo embedding từ OpenAI
-def create_embedding(text, api_key):
+def create_embedding(text, api_key=Config.OPENAI_API_KEY):
     response = openai_client.embeddings.create(
         model="text-embedding-ada-002",
         input=text
@@ -16,10 +19,16 @@ def create_embedding(text, api_key):
     return response.data[0].embedding  # Sử dụng .data để truy cập dữ liệu
 
 # Hàm tìm kiếm vector trong Pinecone
-def query_pinecone(index_name, query_embedding, top_k= 4):
-    pc = Pinecone(api_key="pcsk_hVSzM_3jRxgv7ABQ5LB1D9LotmRA9PYqqU9AjDBtZjz7cQ2fpKbcEaqQ3AvmWsFcxSZWk")
+def query_pinecone(index_name=Config.PINECONE_INDEX_NAME, query_embedding=None, top_k=4):
+    # Kiểm tra nếu không có embedding được truyền vào
+    if query_embedding is None:
+        raise ValueError("Phải cung cấp query_embedding")
+    
+    pc = Pinecone(api_key=Config.PINECONE_API_KEY)
     index = pc.Index(index_name)
     results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True)
+    
+    # In kết quả truy vấn (có thể bỏ qua nếu không muốn in ra)
     print("Kết quả truy vấn vector:")
     for match in results['matches']:
         print("\nVector ID:", match['id'])
@@ -29,4 +38,5 @@ def query_pinecone(index_name, query_embedding, top_k= 4):
             print("Metadata:")
             for key, value in match['metadata'].items():
                 print(f"  {key}: {value}")
+    
     return results

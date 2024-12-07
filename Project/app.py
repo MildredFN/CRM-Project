@@ -2,20 +2,12 @@ from flask import Flask, render_template, request
 from openai_handler import OpenAIHandler
 from gemini_handler import GeminiHandler
 from pinecone_handler import configure_pinecone, create_embedding, query_pinecone
-from pinecone import Pinecone, ServerlessSpec
-
-# Cấu hình API keys
-OPENAI_API_KEY = "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"
-GEMINI_API_KEY = "AIzaSyDYANoBNurD4dYGNksIFTh2UhQsgkYgnAM"
-PINECONE_API_KEY = "pcsk_hVSzM_3jRxgv7ABQ5LB1D9LotmRA9PYqqU9AjDBtZjz7cQ2fpKbcEaqQ3AvmWsFcxSZWk"
-PINECONE_ENV = "us-east-1"
-INDEX_NAME = "sample-movies"
+from config import Config
 
 # Khởi tạo các handler
-openai_handler = OpenAIHandler(OPENAI_API_KEY)
-gemini_handler = GeminiHandler(GEMINI_API_KEY)
-
-pc = configure_pinecone(PINECONE_API_KEY, PINECONE_ENV)
+openai_handler = OpenAIHandler(Config.OPENAI_API_KEY)
+gemini_handler = GeminiHandler(Config.GEMINI_API_KEY)
+pc = configure_pinecone(Config.PINECONE_API_KEY, Config.PINECONE_ENVIRONMENT)
 
 app = Flask(__name__)
 
@@ -43,8 +35,12 @@ def index():
         # Tăng cường truy vấn Pinecone
         augmented_context = ""
         for reason in selected_reasons:
-            embedding = create_embedding(reason, OPENAI_API_KEY)  # Tạo embedding từ lý do
-            pinecone_results = query_pinecone(INDEX_NAME, embedding, top_k=4)  # Thực hiện truy vấn
+            # Sử dụng Config.OPENAI_API_KEY
+            embedding = create_embedding(reason)  # Không cần truyền API key
+            
+            # Sử dụng Config.PINECONE_INDEX_NAME
+            pinecone_results = query_pinecone(query_embedding=embedding, top_k=4)  
+            
             for match in pinecone_results["matches"]:
                 augmented_context += f"{match['metadata']}: {reason}\n"
 
@@ -60,4 +56,6 @@ def index():
     return render_template("index.html", reasons=REASONS, strategy=None)
 
 if __name__ == "__main__":
+    # Validate keys trước khi chạy ứng dụng
+    Config.validate_keys()
     app.run(debug=True)

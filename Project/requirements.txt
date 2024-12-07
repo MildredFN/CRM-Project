@@ -1,4 +1,6 @@
-openai
 flask
-pinecone
+python-dotenv
+openai
+google-generativeai
+pinecone-client
 rouge-score
